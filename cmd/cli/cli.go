@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"strconv"
 
 	"github.com/pjbgf/go-sample-console-app/pkg/calc"
@@ -15,14 +14,14 @@ type console struct {
 	commandFactory func(args []string) (cliCommand, error)
 	stdOut         io.Writer
 	stdErr         io.Writer
-	onError        func(writer io.Writer, err error)
+	exit           func(code int)
 }
 
 type cliCommand interface {
 	run(output io.Writer)
 }
 
-func NewConsole(stdOut io.Writer, stdErr io.Writer) *console {
+func NewConsole(stdOut io.Writer, stdErr io.Writer, exit func(int)) *console {
 	if stdOut == (*bytes.Buffer)(nil) {
 		panic("stdOut was null")
 	}
@@ -34,23 +33,23 @@ func NewConsole(stdOut io.Writer, stdErr io.Writer) *console {
 		getCommand,
 		stdOut,
 		stdErr,
-		exitOnError,
+		exit,
 	}
 }
 
-func exitOnError(writer io.Writer, err error) {
+func (c *console) exitOnError(writer io.Writer, err error) {
 	printf(writer, "error: %s\n", err)
-	os.Exit(1)
+
+	c.exit(5)
 }
 
 func (c *console) Run(args []string) {
 	cmd, err := c.commandFactory(args)
 	if err != nil {
-		c.onError(c.stdErr, err)
-		return
+		c.exitOnError(c.stdErr, err)
+	} else {
+		cmd.run(c.stdOut)
 	}
-
-	cmd.run(c.stdOut)
 }
 
 func getCommand(args []string) (cliCommand, error) {
@@ -63,7 +62,7 @@ func getCommand(args []string) (cliCommand, error) {
 		return &additionCommand{val1, val2}, nil
 	}
 
-	return nil, nil
+	return nil, errors.New("invalid operation")
 }
 
 func parse(args []string) (value1, value2 int, op string, err error) {
@@ -73,12 +72,16 @@ func parse(args []string) (value1, value2 int, op string, err error) {
 	}
 
 	if value1, err = strconv.Atoi(args[1]); err != nil {
+		err = fmt.Errorf("'%s' is not valid for value1", args[1])
 		return
 	}
 
 	op = args[2]
 
-	value2, err = strconv.Atoi(args[3])
+	if value2, err = strconv.Atoi(args[3]); err != nil {
+		err = fmt.Errorf("'%s' is not valid for value2", args[3])
+		return
+	}
 
 	return
 }

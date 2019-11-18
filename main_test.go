@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -10,7 +11,7 @@ import (
 	"github.com/pjbgf/go-test/should"
 )
 
-func TestMain(t *testing.T) {
+func TestMain_E2E(t *testing.T) {
 	assertThat := func(assumption, command, expectedOutput string) {
 		should := should.New(t)
 		stdout, _ := ioutil.TempFile("", "calc-fake-stdout.*")
@@ -32,18 +33,36 @@ func TestMain(t *testing.T) {
 }
 
 func TestMain_ErrorCodes(t *testing.T) {
-	assertThat := func(assumption string, command string, expected string) {
+	assertThat := func(assumption, command, expectedErr, expectedOutput string) {
 		should := should.New(t)
-		args := strings.Split(command, " ")
+		exe, _ := os.Executable()
 
-		cmd := exec.Command(args[0], args[1:]...)
-		err := cmd.Run()
+		cmd := exec.Command(exe, "-test.run", "^TestMain_ErrorCodes_Inception$")
+		cmd.Env = append(cmd.Env, fmt.Sprintf("ErrorCodes_Args=%s", command))
+
+		output, err := cmd.CombinedOutput()
 
 		e, ok := err.(*exec.ExitError)
 
-		should.BeTrue(ok, assumption)
-		should.BeEqual(expected, e.Error(), assumption)
+		if !ok {
+			t.Log("was expecting exit code which did not happen")
+			t.FailNow()
+		}
+
+		actualOutput := string(output)
+
+		should.BeEqual(expectedErr, e.Error(), assumption)
+		should.BeEqual(expectedOutput, actualOutput, assumption)
 	}
 
-	assertThat("should exit with exit code 1 for invalid syntax", "go test -test.run=TestMain_ErrorCodes main", "exit status 1")
+	assertThat("should exit with code 5 if no args provided", "calc", "exit status 5", "error: invalid syntax\n")
+}
+
+func TestMain_ErrorCodes_Inception(t *testing.T) {
+	args := os.Getenv("ErrorCodes_Args")
+	if args != "" {
+		os.Args = strings.Split(args, " ")
+
+		main()
+	}
 }

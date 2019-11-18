@@ -15,6 +15,6 @@ func TestSum(t *testing.T) {
 		should.BeEqual(expected, actual, assumption)
 	}
 
-	assertThat("should return 13 for 4 and 9", 4, 9, 13)
-	assertThat("should return 50 for 15 and 30", 15, 35, 50)
+	assertThat("should return 13 for args 4 and 9", 4, 9, 13)
+	assertThat("should return 50 for args 15 and 30", 15, 35, 50)
 }
