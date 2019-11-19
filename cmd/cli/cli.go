@@ -100,5 +100,5 @@ func (a *additionCommand) run(output io.Writer) {
 }
 
 func printf(writer io.Writer, format string, args ...interface{}) {
-	writer.Write([]byte(fmt.Sprintf(format, args...)))
+	_, _ = writer.Write([]byte(fmt.Sprintf(format, args...)))
 }
