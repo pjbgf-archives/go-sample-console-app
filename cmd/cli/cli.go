@@ -10,7 +10,8 @@ import (
 	"github.com/pjbgf/go-sample-console-app/pkg/calc"
 )
 
-type console struct {
+// Console represents a Console application.
+type Console struct {
 	commandFactory func(args []string) (cliCommand, error)
 	stdOut         io.Writer
 	stdErr         io.Writer
@@ -21,7 +22,8 @@ type cliCommand interface {
 	run(output io.Writer)
 }
 
-func NewConsole(stdOut io.Writer, stdErr io.Writer, exit func(int)) *console {
+// NewConsole initialise and return a new Console object.
+func NewConsole(stdOut io.Writer, stdErr io.Writer, exit func(int)) *Console {
 	if stdOut == (*bytes.Buffer)(nil) {
 		panic("stdOut was null")
 	}
@@ -29,7 +31,7 @@ func NewConsole(stdOut io.Writer, stdErr io.Writer, exit func(int)) *console {
 		panic("stdErr was null")
 	}
 
-	return &console{
+	return &Console{
 		getCommand,
 		stdOut,
 		stdErr,
@@ -37,13 +39,14 @@ func NewConsole(stdOut io.Writer, stdErr io.Writer, exit func(int)) *console {
 	}
 }
 
-func (c *console) exitOnError(writer io.Writer, err error) {
+func (c *Console) exitOnError(writer io.Writer, err error) {
 	printf(writer, "error: %s\n", err)
 
 	c.exit(5)
 }
 
-func (c *console) Run(args []string) {
+// Run runs the console application.
+func (c *Console) Run(args []string) {
 	cmd, err := c.commandFactory(args)
 	if err != nil {
 		c.exitOnError(c.stdErr, err)
